@@ -8,12 +8,20 @@ interface CameraContract {
         fun startOther ()
         fun showEmotion (emo: String)
         fun showName (name: String)
-        fun startAnim ()
+        fun startDetectFace (): Int
+        fun stopDetectFace (): Int
+        fun loadAnimation ()
+        fun startAnimation ()
+        fun stopAnimation ()
     }
 
     interface Presenter {
         fun start ()
-        fun JSON_Request (name: String?, base64: String)
+        fun sendImageOnAnalysis (name: String?, base64: String)
+
+        fun onResume ()
+        fun onPause ()
+        fun onRestart ()
     }
 
     interface Repository {
@@ -27,6 +35,8 @@ interface CameraContract {
         interface CameraSync {
             fun sendEmotion (emo: String)
             fun sendName (name: String)
+
+            fun onError (msg: String)
         }
     }
 }

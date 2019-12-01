@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Khakaton</string>
+    <string name="angry">angry</string>
+    <string name="disgust">disgust</string>
+    <string name="fear">fear</string>
+    <string name="happy">happy</string>
+    <string name="sad">sad</string>
+    <string name="surprise">surprise</string>
+    <string name="neutral">neutral</string>
 </resources>

@@ -20,19 +20,26 @@ import com.westwin.khakaton.FaceDetectionListener
 import com.westwin.khakaton.Presenters.CameraActivityPresenter
 import com.westwin.khakaton.R
 
-class CameraActivity: AppCompatActivity (), View.OnClickListener, CameraContract.View {
+class CameraActivity : AppCompatActivity(), View.OnClickListener, CameraContract.View {
 
+    private val TAG = "APP"
+
+    // for face scanning
     private lateinit var mCamera: Camera
     private lateinit var mCameraPreview: CameraPreview
 
+    // layout
     private lateinit var preview: LinearLayout
-    private lateinit var take_photo_btn: ImageButton
+
+    // views
+    private lateinit var takePhotoBtn: ImageButton
+    private lateinit var mEtName: EditText
 
     private lateinit var mPresenter: CameraActivityPresenter
 
-    private lateinit var mEtName: EditText
-
     private lateinit var ranim: Animation
+
+    // lifecycle
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,91 +47,32 @@ class CameraActivity: AppCompatActivity (), View.OnClickListener, CameraContract
 
         mPresenter = CameraActivityPresenter(this)
         mPresenter.start()
-
-        startDetectFace()
-
-        ranim = AnimationUtils.loadAnimation(this, R.anim.rotate) as Animation
     }
 
     override fun onResume() {
         super.onResume()
-
-        startDetectFace()
+        mPresenter.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-
-        stopDetectFace()
+        mPresenter.onPause()
     }
 
     override fun onRestart() {
         super.onRestart()
-
-        mCamera.startPreview()
-
-        startDetectFace()
+        mPresenter.onRestart()
     }
 
-    private fun startDetectFace(): Int {
-        mCamera.startPreview()
-        val FDListener = FaceDetectionListener()
-        mCamera.setFaceDetectionListener(FDListener)
-        try {
-            mCamera.startFaceDetection()
-        } catch (e: Exception) {
-            Log.i("CAMERA", "START")
-        }
-        return 0
-    }
-
-    private fun stopDetectFace(): Int {
-        try {
-            mCamera.stopFaceDetection()
-        } catch (e: Exception) {
-            Log.i("CAMERA", "STOP")
-        }
-
-        return 0
-    }
-
-    override fun onClick(p0: View?) {
-        if (p0 != null)
-            when (p0.id) {
-                R.id.take_photo -> {
-                    val inflater = LayoutInflater.from(this)
-                    val view = inflater.inflate(R.layout.save_face_alert, null)
-                    mEtName = view.findViewById(R.id.username)
-                    AlertDialog.Builder(this)
-                        .setTitle("Save face")
-                        .setView(view)
-                        .setPositiveButton("Yes", DialogInterface.OnClickListener { dialog, which ->
-                            val name = mEtName.text.toString()
-                            mCamera.takePicture(null, null, Camera.PictureCallback { data, camera ->
-                        try {
-                            mPresenter.JSON_Request(name, String(Base64.encode(data, 0)))
-                            mCameraPreview.refreshCamera(camera)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    })
-                        })
-                        .show()
-                }
-            }
-    }
-
-    override fun startAnim() {
-        take_photo_btn.startAnimation(ranim)
-    }
+    // init views
 
     override fun initView() {
         preview = findViewById(R.id.camera_preview)
-        take_photo_btn = findViewById(R.id.take_photo)
+        takePhotoBtn = findViewById(R.id.take_photo)
     }
 
     override fun attachListeners() {
-        take_photo_btn.setOnClickListener(this)
+        takePhotoBtn.setOnClickListener(this)
     }
 
     override fun startOther() {
@@ -132,28 +80,138 @@ class CameraActivity: AppCompatActivity (), View.OnClickListener, CameraContract
         mCamera.setDisplayOrientation(90)
 
         mCameraPreview = CameraPreview(this, mCamera)
-        //mFaceView = FaceView(this, null, 0)
-
-        //mFaceView.setContent()
 
         preview.addView(mCameraPreview)
     }
 
-    override fun showEmotion(emo: String) {
-        take_photo_btn.animate().cancel()
-        if (emo.isNotEmpty())
-            when (emo) {
-                "angry" -> { take_photo_btn.setImageResource(R.drawable.angry) }
-                "disgust" -> { take_photo_btn.setImageResource(R.drawable.disgusted) }
-                "fear" -> { take_photo_btn.setImageResource(R.drawable.fearful) }
-                "happy" -> { take_photo_btn.setImageResource(R.drawable.happy) }
-                "sad" -> { take_photo_btn.setImageResource(R.drawable.sad) }
-                "surprise" -> { take_photo_btn.setImageResource(R.drawable.surprised) }
-                "neutral" -> { take_photo_btn.setImageResource(R.drawable.neutral) }
+    // animation
+
+    override fun loadAnimation() {
+        ranim = AnimationUtils
+            .loadAnimation(
+                this,
+                R.anim.rotate
+            ) as Animation
+    }
+
+    override fun startAnimation() {
+        takePhotoBtn.startAnimation(ranim)
+    }
+
+    override fun stopAnimation() {
+        takePhotoBtn.animate().cancel()
+    }
+
+    // face detection
+
+    override fun startDetectFace(): Int {
+        mCamera.startPreview()
+        val FDListener = FaceDetectionListener()
+        mCamera.setFaceDetectionListener(FDListener)
+        try {
+            mCamera.startFaceDetection()
+        } catch (e: Exception) {
+            Log.i(TAG, "Face detection started")
+        }
+        return 0
+    }
+
+    override fun stopDetectFace(): Int {
+        try {
+            mCamera.stopFaceDetection()
+        } catch (e: Exception) {
+            Log.i(TAG, "Face detection stopped")
+        }
+
+        return 0
+    }
+
+    // inputs
+
+    override fun onClick(p0: View?) {
+        if (p0 != null)
+            when (p0.id) {
+                R.id.take_photo -> {
+                    val inflater = LayoutInflater
+                        .from(this)
+                    val view = inflater
+                        .inflate(
+                            R.layout.save_face_alert,
+                            null
+                        )
+                    mEtName = view
+                        .findViewById(R.id.username)
+                    AlertDialog.Builder(this)
+                        .setTitle("Save face")
+                        .setView(view)
+                        .setPositiveButton(
+                            "Yes",
+                            DialogInterface.OnClickListener { dialog, which ->
+                                mCamera
+                                    .takePicture(
+                                        null,
+                                        null,
+                                        Camera.PictureCallback { data, camera ->
+                                            try {
+                                                mPresenter
+                                                    .sendImageOnAnalysis(
+                                                        mEtName
+                                                            .text
+                                                            .toString(),
+                                                        String(
+                                                            Base64.encode(
+                                                                data,
+                                                                0
+                                                            )
+                                                        )
+                                                    )
+                                                mCameraPreview.refreshCamera(camera)
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
+                                            }
+                                        })
+                            })
+                        .show()
+                }
             }
     }
 
+    // reactions
+
+    override fun showEmotion(emo: String) {
+        if (emo.isNotEmpty()) {
+            when (emo) {
+                getString(R.string.angry) -> {
+                    takePhotoBtn.setImageResource(R.drawable.angry)
+                }
+                getString(R.string.disgust) -> {
+                    takePhotoBtn.setImageResource(R.drawable.disgusted)
+                }
+                getString(R.string.fear) -> {
+                    takePhotoBtn.setImageResource(R.drawable.fearful)
+                }
+                getString(R.string.happy) -> {
+                    takePhotoBtn.setImageResource(R.drawable.happy)
+                }
+                getString(R.string.sad) -> {
+                    takePhotoBtn.setImageResource(R.drawable.sad)
+                }
+                getString(R.string.surprise) -> {
+                    takePhotoBtn.setImageResource(R.drawable.surprised)
+                }
+                getString(R.string.neutral) -> {
+                    takePhotoBtn.setImageResource(R.drawable.neutral)
+                }
+            }
+        }
+    }
+
     override fun showName(name: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        Toast
+            .makeText(
+                this,
+                "Your name is $name",
+                Toast.LENGTH_SHORT
+            ).show()
     }
 }
